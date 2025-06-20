@@ -1,0 +1,221 @@
+{% extends 'layout.html' %}
+{% block title %}Dashboard Admin{% endblock %}
+
+{% block content %}
+<div class="bg-white shadow-sm">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center py-4">
+            <h1 class="text-xl font-semibold text-slate-800">Admin Dashboard</h1>
+            <div class="flex items-center space-x-4">
+                <span class="text-slate-600 hidden sm:block">Login sebagai <span class="font-bold">{{ current_user.name }}</span></span>
+                <a href="{{ url_for('logout') }}" class="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg transition duration-300 text-sm">
+                    Logout
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<main class="container mx-auto p-4 sm:p-6 lg:p-8">
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="p-4 mb-6 text-sm rounded-lg 
+                {% if category == 'danger' %} bg-red-100 text-red-700 
+                {% elif category == 'success' %} bg-green-100 text-green-700 
+                {% else %} bg-blue-100 text-blue-700 {% endif %}"
+                role="alert">
+                {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Bagian Manajemen Karyawan -->
+    <div class="bg-white p-6 rounded-xl shadow-md mb-8">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-semibold">Manajemen Karyawan</h2>
+            <button id="add-employee-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+                + Tambah Karyawan
+            </button>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200">
+                <thead class="bg-slate-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Nama</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">ID Karyawan</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Email</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Role</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-slate-200">
+                    {% for employee in employees %}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{{ employee.name }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{{ employee.employee_id }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{{ employee.email }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                {{ 'bg-green-100 text-green-800' if employee.role == 'employee' else 'bg-indigo-100 text-indigo-800' }}">
+                                {{ employee.role }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                            <button class="edit-btn text-indigo-600 hover:text-indigo-900"
+                                    data-id="{{ employee.id }}"
+                                    data-name="{{ employee.name }}"
+                                    data-email="{{ employee.email }}"
+                                    data-employee-id="{{ employee.employee_id }}"
+                                    data-role="{{ employee.role }}">Edit</button>
+                            <form action="{{ url_for('delete_employee', user_id=employee.id) }}" method="POST" class="inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus karyawan ini?');">
+                                <button type="submit" class="text-red-600 hover:text-red-900">Hapus</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Bagian Laporan Absensi -->
+    <div class="bg-white p-6 rounded-xl shadow-md">
+        <h2 class="text-lg font-semibold mb-4">Laporan Absensi Keseluruhan</h2>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200">
+                <thead class="bg-slate-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Nama Karyawan</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">ID Karyawan</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Tanggal</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Clock In</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Clock Out</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-slate-200">
+                    {% for record in attendance_records %}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{{ record.name }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{{ record.employee_id }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{{ record.date.strftime('%d %b %Y') }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600">{{ record.clock_in_time.strftime('%H:%M:%S') }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-red-600">
+                            {{ record.clock_out_time.strftime('%H:%M:%S') if record.clock_out_time else '---' }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+
+<!-- Modal Tambah Karyawan -->
+<div id="add-modal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4">
+    <div class="modal-content bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+        <form action="{{ url_for('add_employee') }}" method="POST">
+            <h3 class="text-xl font-semibold mb-4">Tambah Karyawan Baru</h3>
+            <div class="space-y-4">
+                <input type="text" name="name" placeholder="Nama Lengkap" class="w-full border p-2 rounded-md" required>
+                <input type="email" name="email" placeholder="Email" class="w-full border p-2 rounded-md" required>
+                <input type="text" name="employee_id" placeholder="ID Karyawan" class="w-full border p-2 rounded-md" required>
+                <input type="password" name="password" placeholder="Password Awal" class="w-full border p-2 rounded-md" required>
+                <select name="role" class="w-full border p-2 rounded-md">
+                    <option value="employee" selected>Employee</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+            <div class="mt-6 flex justify-end space-x-3">
+                <button type="button" class="modal-close-btn px-4 py-2 bg-slate-200 rounded-md hover:bg-slate-300">Batal</button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Simpan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Edit Karyawan -->
+<div id="edit-modal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4">
+    <div class="modal-content bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+        <form id="edit-form" method="POST">
+            <h3 class="text-xl font-semibold mb-4">Edit Data Karyawan</h3>
+            <div class="space-y-4">
+                <input type="text" name="edit_name" id="edit_name" placeholder="Nama Lengkap" class="w-full border p-2 rounded-md" required>
+                <input type="email" name="edit_email" id="edit_email" placeholder="Email" class="w-full border p-2 rounded-md" required>
+                <input type="text" name="edit_employee_id" id="edit_employee_id" placeholder="ID Karyawan" class="w-full border p-2 rounded-md" required>
+                <select name="edit_role" id="edit_role" class="w-full border p-2 rounded-md">
+                    <option value="employee">Employee</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+            <div class="mt-6 flex justify-end space-x-3">
+                <button type="button" class="modal-close-btn px-4 py-2 bg-slate-200 rounded-md hover:bg-slate-300">Batal</button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Update</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const addModal = document.getElementById('add-modal');
+    const editModal = document.getElementById('edit-modal');
+    const addEmployeeBtn = document.getElementById('add-employee-btn');
+    const editBtns = document.querySelectorAll('.edit-btn');
+    const closeBtns = document.querySelectorAll('.modal-close-btn');
+    const overlays = document.querySelectorAll('.modal-overlay');
+
+    const openModal = (modal) => {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    };
+
+    const closeModal = (modal) => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    };
+
+    if(addEmployeeBtn) {
+        addEmployeeBtn.addEventListener('click', () => openModal(addModal));
+    }
+
+    editBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const id = btn.dataset.id;
+            const name = btn.dataset.name;
+            const email = btn.dataset.email;
+            const employeeId = btn.dataset.employeeId;
+            const role = btn.dataset.role;
+
+            const form = document.getElementById('edit-form');
+            form.action = `/admin/employees/edit/${id}`;
+            document.getElementById('edit_name').value = name;
+            document.getElementById('edit_email').value = email;
+            document.getElementById('edit_employee_id').value = employeeId;
+            document.getElementById('edit_role').value = role;
+
+            openModal(editModal);
+        });
+    });
+
+    closeBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            closeModal(addModal);
+            closeModal(editModal);
+        });
+    });
+
+    overlays.forEach(overlay => {
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                closeModal(overlay);
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
